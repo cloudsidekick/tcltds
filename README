@@ -1,0 +1,201 @@
+Tcltds v1.0 
+
+------------------------------------------
+Description 
+------------------------------------------
+
+Tcltds is an opensource tcl interface to the FreeTDS library.  It can be used to connect to Microsoft SQL Server and exectute queries over the TDS protocol from linux.
+
+At the present time Sybase connections have been untested. 
+
+For more information on FreeTDS:
+
+http://freetds.org
+
+------------------------------------------
+Repository and Download
+------------------------------------------
+
+https://github.com/cloudsidekick/tcltds
+
+------------------------------------------
+Bug and Feature Requests
+------------------------------------------
+
+https://github.com/cloudsidekick/tcltds/issues
+
+------------------------------------------
+How does it work? 
+------------------------------------------
+
+The Tcltds extension is a shared library that links with the FreeTDS libraries to interact with
+MS SQL. 
+
+------------------------------------------
+Requirements
+------------------------------------------
+
+Tcl >= 8.4, FreeTDS
+
+See http://freetds.org for compiling and installing FreeTDS. Tcltds has been known to work with versions 0.62 - 0.82, should work with newer releases.
+
+Easy way to install FreeTDS on Debian:
+
+sudo apt-get install freetds-common freetds-dev
+
+Tcltds has been tested using Tcl 8.4 - 8.6.
+
+------------------------------------------
+Building
+------------------------------------------
+
+Tcltds is a shared library to be build on linux / unix using GNU g++. 
+
+At present there is no configure files. You must edit the Makefile directly to customize the build.
+
+TODO: create configure, Makefile.in using automake and TEA 
+
+Edit the Makefile and change the following lines to fit your environment. The defaults below assume the standard Debian package install and should work in that case out of the box.
+
+TDS_INCLUDE_HOME=/usr/include
+TDS_LIB_HOME=/usr/lib
+TCL_INCLUDE_HOME=/usr/include/tcl8.5
+TCL_LIB_HOME=/usr/lib
+TCL_LIB_VERSION=8.5
+
+Save the file, then run make. 
+
+------------------------------------------
+Installation
+------------------------------------------
+
+Copy the contents of the ./lib directory to your favorite Tcl library location.
+
+Exmaple:
+
+sudo mkdir /usr/lib/tcltds
+cp ./lib /usr/lib/tcltd
+
+TODO: Create the installation part of the make process. 
+
+------------------------------------------
+Usage
+------------------------------------------
+
+To create a new connection to Microsoft SQL Server:
+
+tds_connect <user> <password> <address> <database> <port> <app name>
+
+	myuser		- database user
+	password	- database user's password
+	address		- datbase server FQDN or ip address
+	databas		- datbase name
+	port		- optional, database server port, 1433 is default 
+	app name	- optional, the application name passed to the database server
+
+Returns the connection id.
+
+tds_connect establishes a connection to the database using the FreeTDS library. 
+
+
+Examples:
+
+set conn [tds_connect myuser mypassword 10.210.195.178 mydatabase 1433 {my application}]
+set conn [tds_connect myuser mypassword 10.210.195.178 mydatabase {} {my application}]
+set conn [tds_connect myuser mypassword 10.210.195.178 mydatabase}]
+
+
+To send a query to the database:
+
+tds_query <connection id> <sql>
+
+	connection id	- The connection id returned from tds_connect
+	sql		- Any sql statment, set, select, update, delete, insert, exec, etc.
+
+Returns nothing. SQL errors are returned as Tcl errors.
+
+NOTE: An error is generated if you attempt a query while a previous query still has results to be fetched. Either fetch the whole result set or open another connection to the database.
+
+Example: 
+
+tds_query $conn "select person_id, person_name from people"
+
+To fetch a row as the result of a select:
+
+tds_fetchrow <connection id>
+
+	connection id	- The connection id returned from tds_connect
+
+Returns the results of a tds_query in a Tcl list format. Non-select statements return nothing. NOTE: a single column select does not return the result in a list.
+
+Example:
+
+set row [tds_fetchrow $conn]
+
+To fetch the whole resultset as a result of a select:
+
+tds_fetchset <connection id>
+
+	connection id	- The connection id returned from tds_connect
+
+Returns the whole result set of a tds_query in a Tcl list format. Non-select statements return nothing. 
+Example:
+
+set rows [tds_fetchset $conn]
+
+To disconnection from the database:
+
+tds_disconnect <connection id>
+
+	connection id	- The connection id returned from tds_connect
+
+Returns nothing. Disconnects from the database.
+
+Example:
+
+tds_disconnect $conn
+
+------------------------------------------
+TODO
+------------------------------------------
+
+	- Enable more connection string parameters and options
+	- Sybase support
+	- configure, Makefile.in
+	- Automated install
+	- Build tests
+
+------------------------------------------
+Samples
+------------------------------------------
+
+package require tcltds
+set conn [tds_connect myuser mypassword 10.210.195.178 mydatabase {} {test.tcl}]
+set sql "select top 3 person_id, person_name from people"
+tds_query $conn $sql
+
+while {[string length [set row [tds_fetchrow $conn]]] > 0} {
+        puts "Id is [lindex $row 0], Name is [lindex $row 1]"
+}
+
+set sql "update people set person_name = 'David Butz' where person_id = '004D3EE9-C97F-4067-92B9-3DBC9C6F51DE'"
+tds_query $conn $sql
+
+puts ""
+
+tds_query $conn "select top 3 person_id, person_name from people"
+foreach row [tds_fetchset $conn] {
+        puts "Id is [lindex $row 0], Name is [lindex $row 1]"
+}
+
+tds_disconnect $conn
+
+Sample output:
+
+Id is 004D3EE9-C97F-4067-92B9-3DBC9C6F51DE, Name is Dave Butz
+Id is 03670FE6-8FF0-4257-BE22-6AD0F2D8F0FA, Name is Joe Jacoby
+Id is 04F913F5-8369-4ED4-AECD-C3C20F719217, Name is Russ Grimm
+
+Id is 004D3EE9-C97F-4067-92B9-3DBC9C6F51DE, Name is David Butz
+Id is 03670FE6-8FF0-4257-BE22-6AD0F2D8F0FA, Name is Joe Jacoby
+Id is 04F913F5-8369-4ED4-AECD-C3C20F719217, Name is Russ Grimm
