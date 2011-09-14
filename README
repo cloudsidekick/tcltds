@@ -71,7 +71,7 @@ Installation
 
 Copy the contents of the ./lib directory to your favorite Tcl library location.
 
-Exmaple:
+Example:
 
 sudo mkdir /usr/lib/tcltds
 cp ./lib /usr/lib/tcltd
